@@ -3,7 +3,7 @@
 (require "parse.rkt")
 (require "compile.rkt")
 (require "read-all.rkt")
-(require a86/printer)
+(require "printer.rkt")
 
 ;; -> Void
 ;; Compile contents of stdin,
