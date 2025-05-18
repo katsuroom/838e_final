@@ -1,1 +1,4 @@
 compiled/
+test/*.run
+test/*.s
+*.o

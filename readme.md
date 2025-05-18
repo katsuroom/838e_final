@@ -11,3 +11,4 @@ make test/test.s
 
 ### Modifications
 - Decouple `ast/printer.rkt` dependency into local `printer.rkt`
+- Removed files relating to interpreter and garbage collector

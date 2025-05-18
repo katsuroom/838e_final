@@ -12,8 +12,7 @@ objs = \
 	main.o \
 	print.o \
 	values.o \
-	io.o \
-	gc.o
+	io.o
 
 default: submit.zip
 
