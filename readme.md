@@ -5,6 +5,9 @@
 make test/test.s
 ```
 
+### RISC-V Manual
+https://www.cs.sfu.ca/~ashriram/Courses/CS295/assets/notebooks/RISCV/RISCV_CARD.pdf
+
 ### Notes
 - Entry point is in `compile-stdin.rkt`
 - asm boilerplate is in `printer.rkt`
