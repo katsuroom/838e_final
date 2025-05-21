@@ -2,3 +2,5 @@ compiled/
 test/*.run
 test/*.s
 *.o
+sim/.vscode/
+test/sim

@@ -18,6 +18,8 @@ https://www.cs.sfu.ca/~ashriram/Courses/CS295/assets/notebooks/RISCV/RISCV_CARD.
     - printer.rkt
 - Register remappings:
     ```
+    x86     RISC-V
+    --------------
     rax ... t0
     r8  ... t1
     r9  ... t2
@@ -25,10 +27,16 @@ https://www.cs.sfu.ca/~ashriram/Courses/CS295/assets/notebooks/RISCV/RISCV_CARD.
     rdi ... a0      arg
     rsp ... s0      frame pointer
     rbx ... s1      heap
+            sp      stack pointer
     ```
+- Final return value is placed in `rax` / `t0`
 - Expected test outputs:
     - test.rkt: 2
     - tri.rkt: 666
+
+### Simulator
+- Run `make sim`
+- `test/sim <asm file>`
 
 ### Modifications
 - Decouple `ast/printer.rkt` dependency into local `printer.rkt`
