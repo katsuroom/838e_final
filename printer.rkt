@@ -1,190 +1,193 @@
 #lang racket
-(require a86/ast)
-(provide/contract
- [asm-display (-> (listof instruction?) any)])
+(provide asm-display)
+(require a86/ast racket/match "types.rkt")
 
-;; ------------------------------------------------------------------
-;; Register name mapping: internal symbols → RISC-V names
-;; ------------------------------------------------------------------
-(define reg-map
-  (hash
-   [t0  "x5"]   ; result / general
-   [t1  "x6"]   ; scratch
-   [t2  "x7"]   ; scratch
-   [t3  "x28"]  ; stack pad
-   [t4  "x29"]  ; scratch (for op3)
-   [a0  "x10"]  ; arg0
-   [a1  "x11"]  ; arg1
-   [a2  "x12"]  ; arg2
-   [s0  "x8"]   ; frame pointer / sp
-   [s1  "x9"])) ; heap pointer
+;; Register remapping: x86 → RISC-V
+(define remap-reg
+  (hash 'rax 't0 'r8 't1 'r9 't2 'r15 't3
+        'rdi 'a0 'rsp 'sp 'rbp 's0 'rbx 's1))
 
-(define tab (make-string 8 #\space))
+(define (rename-reg r)
+  (cond
+    [(hash-has-key? remap-reg r) (hash-ref remap-reg r)]
+    [(symbol? r) r]
+    [(integer? r) (string->symbol (string-append "x" (number->string r)))]
+    [else (error "rename-reg: unexpected register" r)]))
 
-;; ------------------------------------------------------------------
-;; Comment formatting (unchanged)
-;; ------------------------------------------------------------------
-(define (comment->string c)
-  (match c
-    [(% s)   (string-append (make-string 32 #\space) "; " s)]
-    [(%% s)  (string-append tab ";; " s)]
-    [(%%% s) (string-append ";;; " s)]))
+(define indent "        ")
 
-(define current-extern-labels (make-parameter '()))
-
-;; ------------------------------------------------------------------
-;; Label and section formatting (unchanged)
-;; ------------------------------------------------------------------
-(define label-symbol->string
-  (match (system-type 'os)
-    ['macosx (λ (s) (string-append "$_" (symbol->string s)))]
-    [_
-     (λ (s)
-       (if (and (current-shared?) (memq s (current-extern-labels)))
-           (string-append "$" (symbol->string s) " wrt ..plt")
-           (string-append "$" (symbol->string s))))]))
-
-(define extern-label-decl-symbol->string
-  (match (system-type 'os)
-    ['macosx (λ (s) (string-append "$_" (symbol->string s)))]
-    [_
-     (λ (s)
-       (string-append "$" (symbol->string s)))]))
-
-(define (text-section n)
-  (match (system-type 'os)
-    ['macosx (format "section __TEXT,~a align=16" n)]
-    [_       (format "section ~a progbits alloc exec nowrite align=16" n)]))
-
-(define (data-section n)
-  (match (system-type 'os)
-    ['macosx (format "section __DATA,~a align=8" n)]
-    [_       (format "section ~a progbits alloc noexec write align=8" n)]))
-
-;; ------------------------------------------------------------------
-;; Convert an instruction to a simple string
-;; ------------------------------------------------------------------
-(define (common-instruction->string i)
-  (let ((as (instruction-args i)))
-    (string-append tab
-                   (instruction-name i)
-                   (apply string-append
-                          (if (empty? as) "" " ")
-                          (add-between (map arg->string as)
-                                       ", ")))))
-
-(define (fancy-instr->string i)
-  (let ((s (simple-instr->string i)))
-    (if (instruction-annotation i)
-        (if (< (string-length s) 40)
-            (format "~a~a; ~.s"
-                    s
-                    (make-string (- 40 (string-length s)) #\space)
-                    (instruction-annotation i))
-            (format "~a ; ~.s"
-                    s
-                    (instruction-annotation i)))
-        s)))
-
-;; ------------------------------------------------------------------
-;; Argument → String (modified for RISC-V)
-;; ------------------------------------------------------------------
+;; Format argument string
 (define (arg->string e)
   (match e
-    ;; Register
-    [(? register?) (hash-ref reg-map e (symbol->string e))]
-    ;; Memory access: Offset base disp → "disp(base)"
-    [(Offset base disp)
-     (string-append (number->string disp)
-                    "("
-                    (arg->string base)
-                    ")")]
-    ;; Fallback to expression
-    [_ (exp->string e)]))
+    [(? register?) (symbol->string (rename-reg e))]
+    [(? integer?)  (number->string e)]
+    [(Offset off)
+     (match off
+       [(list '+ base imm)
+        (string-append (number->string imm)
+                       "(" (symbol->string (rename-reg base)) ")")]
+       [(? integer?)
+        (string-append (number->string off)
+                       "(" (symbol->string (rename-reg 's0)) ")")]
+       [_ (error "unsupported Offset expression" off)])]
+    [_ (error "unsupported operand" e)]))
 
-;; ------------------------------------------------------------------
-;; Expression → String (unchanged)
-;; ------------------------------------------------------------------
-(define (exp->string e)
-  (match e
-    [(? register?) (symbol->string e)]
-    [(? integer?) (number->string e)]
-    [($ x)          (label-symbol->string x)]
-    [(list '? e1 e2 e3)
-     (string-append "(" (exp->string e1)
-                    " ? " (exp->string e2)
-                    " : " (exp->string e3) ")")]
-    [(list (? exp-unop? o) e1)
-     (string-append "(" (symbol->string o)
-                    " " (exp->string e1) ")")]
-    [(list (? exp-binop? o) e1 e2)
-     (string-append "(" (exp->string e1)
-                    " " (symbol->string o)
-                    " " (exp->string e2) ")")]))
-                    
-;; ------------------------------------------------------------------
-;; Simple instruction → String (unchanged)
-;; ------------------------------------------------------------------
-(define (simple-instr->string i)
-  (match i
-    [(Text)         (string-append tab "section .text")]
-    [(Text n)       (string-append tab (text-section n))]
-    [(Data)         (string-append tab "section .data align=8")]
-    [(Data n)       (string-append tab (data-section n))]
-    [(Extern ($ l)) (string-append tab "extern " (extern-label-decl-symbol->string l))]
-    [(Label ($ l))  (string-append (label-symbol->string l) ":")]
-    [(Lea d e)
-     (string-append tab "lea "
-                    (arg->string d) ", [rel "
-                    (arg->string e) "]")]
-    [(Equ x c)
-     (string-append tab
-                    (symbol->string x)
-                    " equ "
-                    (number->string c))]
-    [(Db (? bytes? bs))
-     (apply string-append tab "db " (add-between (map number->string (bytes->list bs)) ", "))]
-    [_ (common-instruction->string i)]))
+;; Convert a single instruction to string
+(define (instr->string instr)
+  (match instr
+    ;; Segments & labels
+    [(Text)         ""]
+    [(Data)         ""]
+    [(Global ($ l)) ""]
+    [(Extern ($ l)) ""]
+    [(Label ($ l))  (string-append (symbol->string l) ":")]
 
-;; ------------------------------------------------------------------
-;; Display a list of instructions with comments (unchanged)
-;; ------------------------------------------------------------------
-(define (instrs-display a)
-  (match a
-    ['() (void)]
-    [(cons (? Comment? c) a)
-     (begin (write-string (comment->string c))
-            (write-char #\newline)
-            (instrs-display a))]
-    [(cons i (cons (% s) a))
-     (begin (write-string (fancy-instr->string i))
-            (write-char #\newline)
-            (instrs-display a))]
-    [(cons i a)
-     (begin (write-string (fancy-instr->string i))
-            (write-char #\newline)
-            (instrs-display a))]))
+    ;; Memory store
+    [(Mov (Offset off) src)
+     (match off
+       [(list '+ base imm)
+        (string-append indent "sw " (symbol->string (rename-reg src))
+                       ", " (number->string imm)
+                       "(" (symbol->string (rename-reg base)) ")")]
+       [(? integer?)
+        (string-append indent "sw " (symbol->string (rename-reg src))
+                       ", " (number->string off) "(s0)")]
+       [_ (error "Mov-store: unsupported Offset" off)])]
 
-;; ------------------------------------------------------------------
-;; Entry point: Asm → Void (unchanged)
-;; ------------------------------------------------------------------
-(define (extern-labels a)
-  (match a
-    ['() '()]
-    [(cons (Extern ($ l)) a)
-     (cons l (extern-labels a))]
-    [(cons _ a)
-     (extern-labels a)]))
+    ;; Memory load
+    [(Mov dst (Offset off))
+     (match off
+       [(list '+ base imm)
+        (string-append indent "lw " (symbol->string (rename-reg dst))
+                       ", " (number->string imm)
+                       "(" (symbol->string (rename-reg base)) ")")]
+       [(? integer?)
+        (string-append indent "lw " (symbol->string (rename-reg dst))
+                       ", " (number->string off) "(s0)")]
+       [_ (error "Mov-load: unsupported Offset" off)])]
 
-(define (asm-display a)
-  (define (go)
-    (match (findf Label? a)
-      [(Label g)
-       (begin
-         (write-string (string-append
-                        tab "default rel\n"
-                        tab "section .text\n"))
-         (instrs-display a))]
-      [_ (instrs-display a)]))
-  (parameterize ([current-extern-labels (extern-labels a)])
-    (go)))
+    ;; Arithmetic / logic
+    [(Add dst src)
+     (match src
+       [(? register?)
+        (string-append indent "add " (symbol->string (rename-reg dst))
+                       ", " (symbol->string (rename-reg dst))
+                       ", " (symbol->string (rename-reg src)))]
+       [(? integer?)
+        (if (= src 0) ""
+            (string-append indent "addi " (symbol->string (rename-reg dst))
+                           ", " (symbol->string (rename-reg dst))
+                           ", " (number->string src)))]
+       [_ (error "Add: unsupported" src)])]
+
+    [(Sub dst src)
+     (match src
+       [(? register?)
+        (string-append indent "sub " (symbol->string (rename-reg dst))
+                       ", " (symbol->string (rename-reg dst))
+                       ", " (symbol->string (rename-reg src)))]
+       [(? integer?)
+        (if (= src 0) ""
+            (string-append indent "addi " (symbol->string (rename-reg dst))
+                           ", " (symbol->string (rename-reg dst))
+                           ", " (number->string (- src))))])]
+
+    [(And dst src)
+     (match src
+       [(? register?)
+        (string-append indent "and " (symbol->string (rename-reg dst))
+                       ", " (symbol->string (rename-reg dst))
+                       ", " (symbol->string (rename-reg src)))]
+       [(? integer?)
+        (string-append indent "andi " (symbol->string (rename-reg dst))
+                       ", " (symbol->string (rename-reg dst))
+                       ", " (number->string src))])]
+
+    [(Or dst src)
+     (match src
+       [(? register?)
+        (string-append indent "or " (symbol->string (rename-reg dst))
+                       ", " (symbol->string (rename-reg dst))
+                       ", " (symbol->string (rename-reg src)))]
+       [(? integer?)
+        (string-append indent "ori " (symbol->string (rename-reg dst))
+                       ", " (symbol->string (rename-reg dst))
+                       ", " (number->string src))])]
+
+    [(Xor dst src)
+     (match src
+       [(? register?)
+        (string-append indent "xor " (symbol->string (rename-reg dst))
+                       ", " (symbol->string (rename-reg dst))
+                       ", " (symbol->string (rename-reg src)))]
+       [(? integer?)
+        (string-append indent "xori " (symbol->string (rename-reg dst))
+                       ", " (symbol->string (rename-reg dst))
+                       ", " (number->string src))])]
+
+    ;; cons
+    [(Call ($ 'cons))
+     (string-append
+      indent "sw a0, 0(s1)\n"
+      indent "sw a1, 8(s1)\n"
+      indent "addi a0, s1, 0\n"
+      indent "xori a0, a0, " (number->string type-cons) "\n"
+      indent "addi s1, s1, 16")]
+
+    ;; box
+    [(Call ($ 'box))
+     (string-append
+      indent "sw a0, 0(s1)\n"
+      indent "addi a0, s1, 0\n"
+      indent "xori a0, a0, " (number->string type-box) "\n"
+      indent "addi s1, s1, 8")]
+
+    ;; mv / li
+    [(Mov dst src)
+     (match src
+       [(? register?)
+        (if (eq? dst src) ""
+            (string-append indent "mv " (symbol->string (rename-reg dst))
+                           ", " (symbol->string (rename-reg src))))]
+       [(? integer?)
+        (string-append indent "li " (symbol->string (rename-reg dst))
+                       ", " (number->string src))])]
+
+    ;; push / pop
+    [(Push r)
+     (string-append indent "addi s0, s0, -8\n"
+                    indent "sw " (symbol->string (rename-reg r)) ", 0(s0)")]
+    [(Pop r)
+     (string-append indent "lw " (symbol->string (rename-reg r)) ", 0(s0)\n"
+                    indent "addi s0, s0, 8")]
+
+    ;; comparisons / branches
+    [(Cmp r1 r2)
+     (string-append indent "sub t3, "
+                    (symbol->string (rename-reg r1)) ", "
+                    (symbol->string (rename-reg r2)))]
+    [(Je ($ l))  (string-append indent "beq t3, x0, " (symbol->string l))]
+    [(Jne ($ l)) (string-append indent "bne t3, x0, " (symbol->string l))]
+
+    ;; call / ret
+    [(Call ($ l)) (string-append indent "jal ra, " (symbol->string l))]
+    [(Ret) (string-append indent "ret")]
+
+    ;; fallback
+    [_ (string-append indent "# unhandled: " (instruction-name instr))]))
+
+(define (asm-display instrs)
+  ;; 单次打印，不重复 header
+  (printf ".text\n")
+  (printf ".globl entry\n")
+  (printf ".extern peek_byte\n")
+  (printf ".extern read_byte\n")
+  (printf ".extern write_byte\n")
+  (printf ".extern raise_error\n")
+  (printf ".extern collect_garbage\n")
+
+  ;; 主体
+  (for ([i instrs])
+    (define s (instr->string i))
+    (when (and s (not (string=? s "")))
+      (printf "~a\n" s))))
