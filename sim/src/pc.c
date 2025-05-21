@@ -22,7 +22,20 @@ Label* labels;
 
 int numInst = 0;
 int numLabels = 0;
+
 bool branch = false;
+bool isExit = false;
+
+void printInstruction(Instruction inst, int index) {
+    printf("[%d]\t%s\trd: %s, rs1: %s, rs2: %s, imm: %d, [%ld]\n",
+        index,
+        opcodeToStr(inst.opcode),
+        registerToStr(inst.rd),
+        registerToStr(inst.rs1),
+        registerToStr(inst.rs2),
+        inst.imm,
+        (int64_t)inst.val);
+}
 
 int matchLabel(char* label) {
     for(int i = 0; i < numLabels; ++i) {
@@ -102,15 +115,11 @@ void setup(Instruction** instrs) {
     // print instructions
     printf("\nINST:\n");
     for(int i = 0; i < numInst; ++i) {
-        printf("[%d]\t%s\trd: %s, rs1: %s, rs2: %s, imm: %d, [%ld]\n", i,
-            opcodeToStr(instructions[i].opcode),
-            registerToStr(instructions[i].rd),
-            registerToStr(instructions[i].rs1),
-            registerToStr(instructions[i].rs2),
-            instructions[i].imm,
-            (int64_t)instructions[i].val);
+        printInstruction(instructions[i], i);
     }
 }
+
+
 
 void cleanup() {
     for(int i = 0; i < numLabels; ++i) {
@@ -123,6 +132,10 @@ void cleanup() {
 void setpc(int64_t val) {
     pc = val;
     branch = true;
+}
+
+void setexit() {
+    isExit = true;
 }
 
 void execute(Instruction inst) {
@@ -167,10 +180,10 @@ void execute(Instruction inst) {
         break;
 
     case LW:
-        regfile[inst.rd] = *(int64_t*)(regfile[inst.rs1] + regfile[inst.imm]);
+        regfile[inst.rd] = *(int64_t*)(regfile[inst.rs1] + inst.imm);
         break;
     case SW:
-        *(int64_t*)(regfile[inst.rs1] + regfile[inst.imm]) = regfile[inst.rd];
+        *(int64_t*)(regfile[inst.rs1] + inst.imm) = regfile[inst.rd];
         break;
 
     case BEQ:
@@ -195,7 +208,9 @@ void execute(Instruction inst) {
         setpc((int64_t)inst.val);
         break;
 
-    
+    case RET:
+        setexit();
+        break;
     
     default:
         printf("dev: Unhandled opcode: %s\n", opcodeToStr(inst.opcode));
@@ -206,19 +221,38 @@ void execute(Instruction inst) {
     regfile[x0] = 0;
 }
 
+void formatOutput(int64_t val) {
+    
+    printf("\n");
+
+    if((val & 0b1111) == 0) {
+        printf("Return type: int\n");
+        printf("%ld\n", val >> 4);
+        return;
+    }
+
+    printf("Return type: ?\n");
+    printf("0x%lx\n", val);
+    return;
+}
+
 void simulate() {
     int maxInst = 100;
     int count = 0;
 
-    // initialize stack pointer
-    regfile[sp] = (int64_t)(stack + STACK_SIZE);
+    // initialize stack and frame pointer
+    regfile[fp] = (int64_t)(stack + STACK_SIZE);
+    regfile[sp] = regfile[fp];
 
     // initialize heap pointer
-    regfile[s1] = (int64_t)&heap;
+    regfile[a0] = (int64_t)heap;
+
+    printf("\nRunning:\n");
 
     // run
     while(pc < numInst && count < maxInst) {
         
+        printInstruction(instructions[pc], count);
         execute(instructions[pc]);
         count++;
 
@@ -227,7 +261,10 @@ void simulate() {
         else
             pc++;
 
+        if(isExit == true)
+            break;
+
     }
 
-    printf("\n%ld\n", regfile[t0]);
+    formatOutput(regfile[t0]);
 }

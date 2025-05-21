@@ -5,7 +5,7 @@
 ;; Register remapping: x86 → RISC-V
 (define remap-reg
   (hash 'rax 't0 'r8 't1 'r9 't2 'r15 't3
-        'rdi 'a0 'rsp 'sp 'rbp 's0 'rbx 's1))
+        'rdi 'a0 'rsp 'sp 'rbp 'fp 'rbx 's1))
 
 (define (rename-reg r)
   (cond
@@ -28,7 +28,7 @@
                        "(" (symbol->string (rename-reg base)) ")")]
        [(? integer?)
         (string-append (number->string off)
-                       "(" (symbol->string (rename-reg 's0)) ")")]
+                       "(" (symbol->string (rename-reg 'fp)) ")")]
        [_ (error "unsupported Offset expression" off)])]
     [_ (error "unsupported operand" e)]))
 
@@ -51,7 +51,7 @@
                        "(" (symbol->string (rename-reg base)) ")")]
        [(? integer?)
         (string-append indent "sw " (symbol->string (rename-reg src))
-                       ", " (number->string off) "(s0)")]
+                       ", " (number->string off) "(fp)")]
        [_ (error "Mov-store: unsupported Offset" off)])]
 
     ;; Memory load
@@ -63,7 +63,7 @@
                        "(" (symbol->string (rename-reg base)) ")")]
        [(? integer?)
         (string-append indent "lw " (symbol->string (rename-reg dst))
-                       ", " (number->string off) "(s0)")]
+                       ", " (number->string off) "(fp)")]
        [_ (error "Mov-load: unsupported Offset" off)])]
 
     ;; Arithmetic / logic
@@ -155,11 +155,11 @@
 
     ;; push / pop
     [(Push r)
-     (string-append indent "addi s0, s0, -8\n"
-                    indent "sw " (symbol->string (rename-reg r)) ", 0(s0)")]
+     (string-append indent "addi sp, sp, -8\n"
+                    indent "sw " (symbol->string (rename-reg r)) ", 0(sp)")]
     [(Pop r)
-     (string-append indent "lw " (symbol->string (rename-reg r)) ", 0(s0)\n"
-                    indent "addi s0, s0, 8")]
+     (string-append indent "lw " (symbol->string (rename-reg r)) ", 0(sp)\n"
+                    indent "addi sp, sp, 8")]
 
     ;; comparisons / branches
     [(Cmp r1 r2)
@@ -178,16 +178,20 @@
 
 (define (asm-display instrs)
   ;; 单次打印，不重复 header
-  (printf ".text\n")
-  (printf ".globl entry\n")
+  (printf ".section .text\n")
+  (printf ".global entry\n")
   (printf ".extern peek_byte\n")
   (printf ".extern read_byte\n")
   (printf ".extern write_byte\n")
-  (printf ".extern raise_error\n")
-  (printf ".extern collect_garbage\n")
 
   ;; 主体
   (for ([i instrs])
     (define s (instr->string i))
     (when (and s (not (string=? s "")))
-      (printf "~a\n" s))))
+      (printf "~a\n" s)))
+      
+  (printf "raise_error:\n")
+  (printf "\tret")
+  )
+
+  

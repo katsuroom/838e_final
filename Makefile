@@ -36,9 +36,9 @@ runtime.o: $(objs)
 %.s: %.rkt
 	cat $< | racket -t compile-stdin.rkt -m > $@
 
-.PHONY: sim
-sim:
-	$(CC) sim/src/*.c -Isim/include -o test/sim
+.PHONY: rvsim
+rvsim:
+	$(CC) sim/src/*.c -Isim/include -o rvsim
 
 clean:
 	@$(RM) *.o *.s *.run ||:

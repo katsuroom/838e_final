@@ -169,9 +169,14 @@ Instruction* makeInstruction(char** parts, int numParts) {
         instr->val = allocstr(parts[1]);
         break;
 
+    case RET:
+        verifyParts(parts, numParts, 1);
+        break;
+
     default:
         free(instr);
-        error("dev: unhandled opcode.");
+        printf("gay: %d\n", opcode);
+        error("dev: unhandled opcode");
     }
 
     return instr;

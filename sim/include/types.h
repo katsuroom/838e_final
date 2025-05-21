@@ -14,7 +14,7 @@ typedef enum Opcode{
     JAL,
 
     // pseudoinstructions
-    LI, MV, J,
+    LI, MV, J, RET,
 
     OP_ERROR
 } Opcode;
@@ -67,7 +67,5 @@ Register strToRegister(char* str);
 char* opcodeToStr(Opcode opcode);
 
 char* registerToStr(Register reg);
-
-void printInstruction(Instruction instr);
 
 #endif

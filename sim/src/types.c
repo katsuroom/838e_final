@@ -33,7 +33,7 @@ OpcodePair opcodePairs[] = {
 
     {JAL, "jal"},
 
-    {LI, "li"}, {MV, "mv"}, {J, "j"},
+    {LI, "li"}, {MV, "mv"}, {J, "j"}, {RET, "ret"},
 
     {0}
 };
@@ -47,6 +47,7 @@ RegisterPair registerPairs[] = {
     {x20, "s4"}, {x21, "s5"}, {x22, "s6"}, {x23, "s7"},
     {x24, "s8"}, {x25, "s9"}, {x26, "s10"}, {x27, "s11"},
     {x28, "t3"}, {x29, "t4"}, {x30, "t5"}, {x31, "t6"},
+    {fp, "fp"},
 
     {x0, "x0"}, {x1, "x1"}, {x2, "x2"}, {x3, "x3"},
     {x4, "x4"}, {x5, "x5"}, {x6, "x6"}, {x7, "x7"},
@@ -115,8 +116,4 @@ char* registerToStr(Register reg) {
     }
 
     return NULL;
-}
-
-void printInstruction(Instruction instr) {
-    printf("<%s>\n", opcodeToStr(instr.opcode));
 }
