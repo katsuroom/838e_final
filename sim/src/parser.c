@@ -145,6 +145,30 @@ Instruction* makeInstruction(char** parts, int numParts) {
         instr->rd = strToRegister(parts[1]);
         instr->val = allocstr(parts[2]);
         break;
+
+    case LI:
+        verifyParts(parts, numParts, 3);
+        instr->opcode = ADDI;
+        instr->rd = strToRegister(parts[1]);
+        instr->rs1 = x0;
+        instr->imm = atoi(parts[2]);
+        break;
+
+    case MV:
+        verifyParts(parts, numParts, 3);
+        instr->opcode = ADDI;
+        instr->rd = strToRegister(parts[1]);
+        instr->rs1 = strToRegister(parts[2]);
+        instr->imm = 0;
+        break;
+
+    case J:
+        verifyParts(parts, numParts, 2);
+        instr->opcode = JAL;
+        instr->rd = x0;
+        instr->val = allocstr(parts[1]);
+        break;
+
     default:
         free(instr);
         error("dev: unhandled opcode.");

@@ -4,8 +4,9 @@
 - Add new Opcode in `types.h`
 - Add OpcodePair in `types.c`
 - Add case in `makeInstruction()` in `parser.c`
-    - Handle pseudoinstructions here
+    - Convert pseudoinstructions here
 - Add case in `simulate()` in `pc.c`
+    - No need to handle pseudoinstructions
 
 ### Add register
 - Add new register in `types.h`

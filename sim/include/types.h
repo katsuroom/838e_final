@@ -13,6 +13,9 @@ typedef enum Opcode{
     BEQ, BNE, BLT, BGE,
     JAL,
 
+    // pseudoinstructions
+    LI, MV, J,
+
     OP_ERROR
 } Opcode;
 

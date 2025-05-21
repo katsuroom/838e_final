@@ -33,6 +33,8 @@ OpcodePair opcodePairs[] = {
 
     {JAL, "jal"},
 
+    {LI, "li"}, {MV, "mv"}, {J, "j"},
+
     {0}
 };
 
