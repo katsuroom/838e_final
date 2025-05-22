@@ -11,7 +11,7 @@
   (cond
     [(hash-has-key? remap-reg r) (hash-ref remap-reg r)]
     [(symbol? r) r]
-    [(integer? r) (string->symbol (string-append "x" (number->string r)))]
+    [(integer? r) (string->symbol (string-append (number->string r)))]
     [else (error "rename-reg: unexpected register" r)]))
 
 (define indent "        ")
@@ -155,7 +155,10 @@
     [(Jmp reg) (string-append indent "jalr " (arg->string reg))]
 
 
-    [(Dq val) (string-append indent "" )]
+    [(Dq val)
+      (if (= val 1)
+        (string-append indent "addi x0, x0, 0")
+        (string-append indent ""))]
 
     ;; cons
     [(Call ($ 'cons))
@@ -195,15 +198,23 @@
 
     ;; comparisons / branches
     [(Cmp r1 r2)
-     (string-append indent "sub t3, "
+     (match r2
+       [(? register?)
+        (string-append indent "sub t3, "
                     (symbol->string (rename-reg r1)) ", "
                     (symbol->string (rename-reg r2)))]
+       [(? integer?)
+        (string-append indent "addi t3, "
+                    (symbol->string (rename-reg r1)) ", "
+                    (number->string (- r2)))])]
+
+     
     [(Je ($ l))  (string-append indent "beq t3, x0, " (symbol->string l))]
     [(Jne ($ l)) (string-append indent "bne t3, x0, " (symbol->string l))]
     [(Jl ($ label)) (string-append indent "blt t3, x0, " (symbol->string label))]
 
     ;; call / ret
-    [(Call ($ l)) (string-append indent "jal ra, " (symbol->string l))]
+    [(Call ($ l)) (string-append indent "jal x0, " (symbol->string l))]
     [(Ret) (string-append indent "ret")]
 
     ;; fallback
@@ -213,9 +224,6 @@
   ;; print once
   (printf ".section .text\n")
   (printf ".global entry\n")
-  (printf ".extern peek_byte\n")
-  (printf ".extern read_byte\n")
-  (printf ".extern write_byte\n")
 
   ;; main
   (for ([i instrs])
@@ -224,6 +232,7 @@
       (printf "~a\n" s)))
       
   (printf "raise_error:\n")
+  (printf "\taddi a1, a1, -1\n")
   (printf "\tret")
   )
 

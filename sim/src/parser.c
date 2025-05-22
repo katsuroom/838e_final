@@ -153,7 +153,7 @@ Instruction* makeInstruction(char** parts, int numParts) {
         break;
     case JALR:
         verifyParts(parts, numParts, 2);
-        instr->rd = ra;
+        instr->rd = x0;
         instr->rs1 = strToRegister(parts[1]);
         instr->imm = 0;
         break;
@@ -173,6 +173,10 @@ Instruction* makeInstruction(char** parts, int numParts) {
         break;
     case RET:
         verifyParts(parts, numParts, 1);
+        instr->opcode = JALR;
+        instr->rd = x0;
+        instr->rs1 = ra;
+        instr->imm = 0;
         break;
     case LA:
         verifyParts(parts, numParts, 3);

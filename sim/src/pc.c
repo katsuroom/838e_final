@@ -24,10 +24,9 @@ int numInst = 0;
 int numLabels = 0;
 
 bool branch = false;
-bool isExit = false;
 
 void printInstruction(Instruction inst, int index) {
-    printf("[%d]\t%s\trd: %s, rs1: %s, rs2: %s, imm: %d, [%ld]\n",
+    printf("[%d]\t%s\trd: %s, rs1: %s, rs2: %s, imm: %d, [%lx]\n",
         index,
         opcodeToStr(inst.opcode),
         registerToStr(inst.rd),
@@ -103,14 +102,14 @@ void setup(Instruction** instrs) {
         if(instructions[i].val != 0) {
             int64_t index = matchLabel(instructions[i].val);
             free(instructions[i].val);
-            instructions[i].val = (char*)index;
+            instructions[i].val = (char*)&instructions[index];
         }
     }
 
     // print labels
     printf("LABELS:\n");
     for(int i = 0; i < numLabels; ++i)
-        printf("%s: [%d]\n", labels[i].name, labels[i].index);
+        printf("%s: [%p]\n", labels[i].name, (void*)instructions + (labels[i].index * sizeof(Instruction)));
 
     // print instructions
     printf("\nINSTRUCTIONS:\n");
@@ -130,10 +129,7 @@ void cleanup() {
 void setpc(int64_t val) {
     pc = val;
     branch = true;
-}
-
-void setexit() {
-    isExit = true;
+    // printf("branch: %lx\n", val);
 }
 
 void execute(Instruction inst) {
@@ -176,6 +172,9 @@ void execute(Instruction inst) {
     case ANDI:
         regfile[inst.rd] = regfile[inst.rs1] & inst.imm;
         break;
+    case SLLI:
+        regfile[inst.rd] = regfile[inst.rs1] << inst.imm;
+        break;
     case SRAI:
         regfile[inst.rd] = regfile[inst.rs1] >> inst.imm;
         break;
@@ -203,15 +202,12 @@ void execute(Instruction inst) {
         break;
 
     case JAL:
-        regfile[inst.rd] = pc+1;
+        regfile[inst.rd] = (int64_t)((void*)pc + sizeof(Instruction));
         setpc((int64_t)inst.val);
         break;
     case JALR:
-        regfile[inst.rd] = pc+1;
+        regfile[inst.rd] = (int64_t)((void*)pc + sizeof(Instruction));
         setpc(regfile[inst.rs1]);
-        break;
-    case RET:
-        setexit();
         break;
     case LA:
         regfile[inst.rd] = (int64_t)inst.val;
@@ -219,7 +215,7 @@ void execute(Instruction inst) {
     
     default:
         printf("dev: Unhandled opcode: %s\n", opcodeToStr(inst.opcode));
-        break;
+        exit(EXIT_FAILURE);
     }
 
     // maintain x0
@@ -230,6 +226,8 @@ int64_t simulate(int runtime) {
     int maxInst = runtime;
     int count = 0;
 
+    int64_t end = (int64_t)&instructions[numInst];
+
     // initialize stack and frame pointer
     regfile[fp] = (int64_t)(stack + STACK_SIZE);
     regfile[sp] = regfile[fp];
@@ -237,23 +235,31 @@ int64_t simulate(int runtime) {
     // initialize heap pointer
     regfile[a0] = (int64_t)heap;
 
-    printf("\nRunning:\n");
+    // initialize ra
+    regfile[ra] = end;
+
+    // initialize pc
+    pc = (int64_t)instructions;
+
+
+    printf("\nRunning...\n");
 
     // run
-    while(pc < numInst && count < maxInst) {
+    while(pc < end && count < maxInst) {
         
-        printInstruction(instructions[pc], count);
-        execute(instructions[pc]);
+        printInstruction(*(Instruction*)pc, count);
+        execute(*(Instruction*)pc);
         count++;
 
         if(branch)
             branch = false;
         else
-            pc++;
+            pc = (int64_t)((void*)pc + sizeof(Instruction));
+    }
 
-        if(isExit == true)
-            break;
-
+    if(regfile[a1] == -1) {
+        printf("err\n");
+        exit(0);
     }
 
     return regfile[t0];

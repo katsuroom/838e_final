@@ -1,2 +1,6 @@
 #lang racket
-(+ 40 2)
+
+(define (equal x y)
+    (if (= x y) #t #f))
+
+(equal 2 2)

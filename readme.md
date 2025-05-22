@@ -9,6 +9,14 @@ make test/test.s
 - Run `make rvsim`
 - `rvsim <asm file> <max number of instructions (optional)>`
 
+### Test Cases
+- `test1.s`: Adds 2 and 3, returns `5`
+- `test2.s`: Checks if 2 == 2, returns `#t`
+- `test3.s`: Returns a vector of 5 cons (1. 2)
+- `test4.s`: Returns a box containing 4
+- `test5.s`: Returns a string "aaa"
+- `test6.s`: Incorrect make-string syntax, returns err
+
 ### RISC-V Manual
 https://www.cs.sfu.ca/~ashriram/Courses/CS295/assets/notebooks/RISCV/RISCV_CARD.pdf
 
@@ -29,15 +37,14 @@ https://www.cs.sfu.ca/~ashriram/Courses/CS295/assets/notebooks/RISCV/RISCV_CARD.
     r9  ... t2
     r15 ... t3
     rdi ... a0      arg
-    rsp ... s0      frame pointer
+    rbp ... s0      frame pointer
     rbx ... s1      heap
-            sp      stack pointer
+    rsp ... sp      stack pointer
+        ... ra      link register
     ```
 - Final return value is placed in `rax` / `t0`
-- Expected test outputs:
-    - test.rkt: 2
-    - tri.rkt: 666
 
 ### Modifications
 - Decouple `ast/printer.rkt` dependency into local `printer.rkt`
 - Removed files relating to interpreter and garbage collector
+- Edited `printer.rkt` to generate RISC-V assembly code
