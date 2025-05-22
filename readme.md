@@ -15,7 +15,8 @@ make test/test.s
 - `test3.s`: Returns a vector of 5 cons (1. 2)
 - `test4.s`: Returns a box containing 4
 - `test5.s`: Returns a string "aaa"
-- `test6.s`: Incorrect make-string syntax, returns err
+- `test6.s`: Incorrect make-string syntax, returns `err`
+- `test7.s`: Lambda adds 5 and 10, returns `15`
 
 ### RISC-V Manual
 https://www.cs.sfu.ca/~ashriram/Courses/CS295/assets/notebooks/RISCV/RISCV_CARD.pdf
