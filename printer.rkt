@@ -5,7 +5,7 @@
 ;; Register remapping: x86 → RISC-V
 (define remap-reg
   (hash 'rax 't0 'r8 't1 'r9 't2 'r15 't3
-        'rdi 'a0 'rsp 'sp 'rbp 'fp 'rbx 's1))
+        'rdi 'a0 'rsp 'sp 'rbp 'fp 'rbx 's1 'eax 't0))
 
 (define (rename-reg r)
   (cond
@@ -151,9 +151,11 @@
 
 
     ;; jmp to register
-    [(Jmp reg) (string-append indent "jalr zero, " (arg->string reg) ", 0")]
+    [(Jmp ($ label)) (string-append indent "j " (arg->string label))]
+    [(Jmp reg) (string-append indent "jalr " (arg->string reg))]
 
-    [(Dq val) (string-append indent "")]
+
+    [(Dq val) (string-append indent "" )]
 
     ;; cons
     [(Call ($ 'cons))
