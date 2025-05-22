@@ -153,7 +153,7 @@
     ;; jmp to register
     [(Jmp reg) (string-append indent "jalr zero, " (arg->string reg) ", 0")]
 
-    [(Dq val) (string-append indent ".quad " (number->string val))]
+    [(Dq val) (string-append indent "")]
 
     ;; cons
     [(Call ($ 'cons))

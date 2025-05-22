@@ -176,14 +176,15 @@ void execute(Instruction inst) {
     case ANDI:
         regfile[inst.rd] = regfile[inst.rs1] & inst.imm;
         break;
-
+    case SRAI:
+        regfile[inst.rd] = regfile[inst.rs1] >> inst.imm;
+        break;
     case LW:
         regfile[inst.rd] = *(int64_t*)(regfile[inst.rs1] + inst.imm);
         break;
     case SW:
         *(int64_t*)(regfile[inst.rs1] + inst.imm) = regfile[inst.rd];
         break;
-
     case BEQ:
         if(regfile[inst.rs1] == regfile[inst.rs2])
             setpc((int64_t)inst.val);
