@@ -1,13 +1,12 @@
 #ifndef PC_H
 #define PC_H
 
-#include "types.h"
+#include "enums.h"
 
 void setup(Instruction** instrs);
 
-void simulate();
+int64_t simulate();
 
 void cleanup();
-
 
 #endif

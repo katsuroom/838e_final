@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "types.h"
+#include "enums.h"
 
 
 typedef struct OpcodePair {

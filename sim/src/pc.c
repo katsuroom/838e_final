@@ -26,6 +26,8 @@ int numLabels = 0;
 bool branch = false;
 bool isExit = false;
 
+void formatOutput(int64_t val);
+
 void printInstruction(Instruction inst, int index) {
     printf("[%d]\t%s\trd: %s, rs1: %s, rs2: %s, imm: %d, [%ld]\n",
         index,
@@ -113,13 +115,11 @@ void setup(Instruction** instrs) {
         printf("%s: [%d]\n", labels[i].name, labels[i].index);
 
     // print instructions
-    printf("\nINST:\n");
+    printf("\nINSTRUCTIONS:\n");
     for(int i = 0; i < numInst; ++i) {
         printInstruction(instructions[i], i);
     }
 }
-
-
 
 void cleanup() {
     for(int i = 0; i < numLabels; ++i) {
@@ -221,22 +221,7 @@ void execute(Instruction inst) {
     regfile[x0] = 0;
 }
 
-void formatOutput(int64_t val) {
-    
-    printf("\n");
-
-    if((val & 0b1111) == 0) {
-        printf("Return type: int\n");
-        printf("%ld\n", val >> 4);
-        return;
-    }
-
-    printf("Return type: ?\n");
-    printf("0x%lx\n", val);
-    return;
-}
-
-void simulate() {
+int64_t simulate() {
     int maxInst = 100;
     int count = 0;
 
@@ -266,5 +251,5 @@ void simulate() {
 
     }
 
-    formatOutput(regfile[t0]);
+    return regfile[t0];
 }

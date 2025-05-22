@@ -1,4 +1,4 @@
 #include <stdio.h>
-#include "types.h"
+#include "enums.h"
 
 Instruction** parse(FILE* file);

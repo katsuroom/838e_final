@@ -35,8 +35,8 @@ https://www.cs.sfu.ca/~ashriram/Courses/CS295/assets/notebooks/RISCV/RISCV_CARD.
     - tri.rkt: 666
 
 ### Simulator
-- Run `make sim`
-- `test/sim <asm file>`
+- Run `make rvsim`
+- `rvsim <asm file>`
 
 ### Modifications
 - Decouple `ast/printer.rkt` dependency into local `printer.rkt`

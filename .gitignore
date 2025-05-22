@@ -1,6 +1,6 @@
+.vscode/
 compiled/
 test/*.run
 test/*.s
 *.o
-sim/.vscode/
 rvsim

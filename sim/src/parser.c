@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 #include "parser.h"
-#include "types.h"
+#include "enums.h"
 
 #define BUFFER_SIZE 256
 #define MAX_PARTS 4
@@ -175,7 +175,6 @@ Instruction* makeInstruction(char** parts, int numParts) {
 
     default:
         free(instr);
-        printf("gay: %d\n", opcode);
         error("dev: unhandled opcode");
     }
 

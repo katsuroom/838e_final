@@ -1,4 +1,4 @@
-# RISC-V Simualtor
+# RISC-V Simulator
 
 ### Add Instruction
 - Add new Opcode in `types.h`

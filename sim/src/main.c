@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "parser.h"
 #include "pc.h"
+#include "print.h"
 
 int main(int argc, char** argv) {
     if(argc == 1) {
@@ -17,11 +18,12 @@ int main(int argc, char** argv) {
 
     setup(parse(file));
 
-    simulate();
+    int64_t val = simulate();
+    print_result(val);
 
     cleanup();
 
     fclose(file);
 
-    printf("done\n");
+    printf("\ndone\n");
 }
