@@ -21,6 +21,8 @@
   (match e
     [(? register?) (symbol->string (rename-reg e))]
     [(? integer?)  (number->string e)]
+    [(? symbol?)   (symbol->string e)]
+    [($ label)     (symbol->string label)]
     [(Offset off)
      (match off
        [(list '+ base imm)
@@ -125,6 +127,34 @@
                        ", " (symbol->string (rename-reg dst))
                        ", " (number->string src))])]
 
+    ;; Shift ops
+    [(Sar dst amt)
+     (string-append indent "srai " (arg->string dst) ", "
+                    (arg->string dst) ", " (number->string amt))]
+
+    [(Sal dst amt)
+     (string-append indent "slli " (arg->string dst) ", "
+                    (arg->string dst) ", " (number->string amt))]
+
+    [(Cmove dst src)
+     (string-append
+      indent "beq t3, x0, cmove_then\n"
+      indent "j cmove_end\n"
+      "cmove_then:\n"
+      indent "mv " (arg->string dst) ", " (arg->string src) "\n"
+      "cmove_end:")]
+
+    ;; lea (only label)
+    [(Lea dst ($ label))
+     (string-append indent "la " (arg->string dst)
+                    ", " (symbol->string label))]
+
+
+    ;; jmp to register
+    [(Jmp reg) (string-append indent "jalr zero, " (arg->string reg) ", 0")]
+
+    [(Dq val) (string-append indent ".quad " (number->string val))]
+
     ;; cons
     [(Call ($ 'cons))
      (string-append
@@ -168,6 +198,7 @@
                     (symbol->string (rename-reg r2)))]
     [(Je ($ l))  (string-append indent "beq t3, x0, " (symbol->string l))]
     [(Jne ($ l)) (string-append indent "bne t3, x0, " (symbol->string l))]
+    [(Jl ($ label)) (string-append indent "blt t3, x0, " (symbol->string label))]
 
     ;; call / ret
     [(Call ($ l)) (string-append indent "jal ra, " (symbol->string l))]
@@ -177,14 +208,14 @@
     [_ (string-append indent "# unhandled: " (instruction-name instr))]))
 
 (define (asm-display instrs)
-  ;; 单次打印，不重复 header
+  ;; print once
   (printf ".section .text\n")
   (printf ".global entry\n")
   (printf ".extern peek_byte\n")
   (printf ".extern read_byte\n")
   (printf ".extern write_byte\n")
 
-  ;; 主体
+  ;; main
   (for ([i instrs])
     (define s (instr->string i))
     (when (and s (not (string=? s "")))
