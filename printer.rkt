@@ -144,6 +144,23 @@
       indent "mv " (arg->string dst) ", " (arg->string src) "\n"
       "cmove_end:")]
 
+    [(Cmovl dst src)
+    (string-append
+      indent "blt t3, x0, cmovl_then\n"
+      indent "j cmovl_end\n"
+      "cmovl_then:\n"
+      indent "mv " (arg->string dst) ", " (arg->string src) "\n"
+      "cmovl_end:")]      
+
+    [(Cmovge dst src)
+    (string-append
+      indent "bge t3, x0, cmovge_then\n"
+      indent "j cmovge_end\n"
+      "cmovge_then:\n"
+      indent "mv " (arg->string dst) ", " (arg->string src) "\n"
+      "cmovge_end:")]
+
+
     ;; lea (only label)
     [(Lea dst ($ label))
      (string-append indent "la " (arg->string dst)
