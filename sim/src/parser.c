@@ -140,12 +140,23 @@ Instruction* makeInstruction(char** parts, int numParts) {
         instr->rs2 = strToRegister(parts[2]);
         instr->val = allocstr(parts[3]);
         break;
+    case J:
+        verifyParts(parts, numParts, 2);
+        instr->opcode = JAL;
+        instr->rd = x0;
+        instr->val = allocstr(parts[1]);
+        break;
     case JAL:
         verifyParts(parts, numParts, 3);
         instr->rd = strToRegister(parts[1]);
         instr->val = allocstr(parts[2]);
         break;
-
+    case JALR:
+        verifyParts(parts, numParts, 2);
+        instr->rd = ra;
+        instr->rs1 = strToRegister(parts[1]);
+        instr->imm = 0;
+        break;
     case LI:
         verifyParts(parts, numParts, 3);
         instr->opcode = ADDI;
@@ -153,7 +164,6 @@ Instruction* makeInstruction(char** parts, int numParts) {
         instr->rs1 = x0;
         instr->imm = atoi(parts[2]);
         break;
-
     case MV:
         verifyParts(parts, numParts, 3);
         instr->opcode = ADDI;
@@ -161,16 +171,13 @@ Instruction* makeInstruction(char** parts, int numParts) {
         instr->rs1 = strToRegister(parts[2]);
         instr->imm = 0;
         break;
-
-    case J:
-        verifyParts(parts, numParts, 2);
-        instr->opcode = JAL;
-        instr->rd = x0;
-        instr->val = allocstr(parts[1]);
-        break;
-
     case RET:
         verifyParts(parts, numParts, 1);
+        break;
+    case LA:
+        verifyParts(parts, numParts, 3);
+        instr->rd = strToRegister(parts[1]);
+        instr->val = allocstr(parts[2]);
         break;
 
     default:

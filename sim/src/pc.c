@@ -26,8 +26,6 @@ int numLabels = 0;
 bool branch = false;
 bool isExit = false;
 
-void formatOutput(int64_t val);
-
 void printInstruction(Instruction inst, int index) {
     printf("[%d]\t%s\trd: %s, rs1: %s, rs2: %s, imm: %d, [%ld]\n",
         index,
@@ -207,9 +205,15 @@ void execute(Instruction inst) {
         regfile[inst.rd] = pc+1;
         setpc((int64_t)inst.val);
         break;
-
+    case JALR:
+        regfile[inst.rd] = pc+1;
+        setpc(regfile[inst.rs1]);
+        break;
     case RET:
         setexit();
+        break;
+    case LA:
+        regfile[inst.rd] = (int64_t)inst.val;
         break;
     
     default:

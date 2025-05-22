@@ -31,9 +31,9 @@ OpcodePair opcodePairs[] = {
 
     {BEQ, "beq"}, {BNE, "bne"}, {BLT, "blt"}, {BGE, "bge"},
 
-    {JAL, "jal"},
+    {JAL, "jal"}, {J, "j"}, {JALR, "jalr"},
 
-    {LI, "li"}, {MV, "mv"}, {J, "j"}, {RET, "ret"},
+    {LI, "li"}, {MV, "mv"}, {RET, "ret"}, {LA, "la"},
 
     {0}
 };

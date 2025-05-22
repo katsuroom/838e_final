@@ -11,10 +11,9 @@ typedef enum Opcode{
     ADDI, XORI, ORI, ANDI, SLLI, SRLI, SRAI, SLTI,
     LW, SW,
     BEQ, BNE, BLT, BGE,
-    JAL,
+    J, JAL, JALR,
 
-    // pseudoinstructions
-    LI, MV, J, RET,
+    LI, MV, RET, LA,
 
     OP_ERROR
 } Opcode;
