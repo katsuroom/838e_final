@@ -226,8 +226,8 @@ void execute(Instruction inst) {
     regfile[x0] = 0;
 }
 
-int64_t simulate() {
-    int maxInst = 100;
+int64_t simulate(int runtime) {
+    int maxInst = runtime;
     int count = 0;
 
     // initialize stack and frame pointer

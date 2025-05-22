@@ -5,7 +5,7 @@
 
 void setup(Instruction** instrs);
 
-int64_t simulate();
+int64_t simulate(int runtime);
 
 void cleanup();
 

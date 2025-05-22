@@ -16,9 +16,14 @@ int main(int argc, char** argv) {
         return -1;
     }
 
+    int runtime = 1000;
+    if(argc >= 3) {
+        runtime = atoi(argv[2]);
+    }
+
     setup(parse(file));
 
-    int64_t val = simulate();
+    int64_t val = simulate(runtime);
     print_result(val);
 
     cleanup();

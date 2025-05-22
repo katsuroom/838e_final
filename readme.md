@@ -5,6 +5,10 @@
 make test/test.s
 ```
 
+### Simulator
+- Run `make rvsim`
+- `rvsim <asm file> <max number of instructions (optional)>`
+
 ### RISC-V Manual
 https://www.cs.sfu.ca/~ashriram/Courses/CS295/assets/notebooks/RISCV/RISCV_CARD.pdf
 
@@ -33,10 +37,6 @@ https://www.cs.sfu.ca/~ashriram/Courses/CS295/assets/notebooks/RISCV/RISCV_CARD.
 - Expected test outputs:
     - test.rkt: 2
     - tri.rkt: 666
-
-### Simulator
-- Run `make rvsim`
-- `rvsim <asm file>`
 
 ### Modifications
 - Decouple `ast/printer.rkt` dependency into local `printer.rkt`
